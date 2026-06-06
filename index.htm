@@ -3,27 +3,177 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Kill the Alien — PvP по сети</title>
+    <title>Kill the Alien — PvP по сети (мобильная версия)</title>
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <style>
-        * { user-select: none; -webkit-tap-highlight-color: transparent; touch-action: none; }
-        body { margin: 0; min-height: 100vh; background: #0a0f1a; display: flex; justify-content: center; align-items: center; font-family: 'Courier New', monospace; overflow: hidden; position: fixed; width: 100%; height: 100%; }
-        .game-wrapper { position: relative; width: 100%; height: 100%; }
-        canvas { display: block; width: 100%; height: 100%; background: #0b1219; cursor: crosshair; }
-        .ui-panel { position: absolute; top: 16px; left: 16px; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); border-radius: 20px; padding: 8px 16px; color: #ffd966; font-weight: bold; z-index: 20; font-family: monospace; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
-        .status { font-size: 14px; color: #aaffaa; }
-        .reset-btn { position: absolute; bottom: 16px; right: 16px; background: #ff8844; border: none; font-size: 18px; font-weight: bold; padding: 8px 20px; border-radius: 40px; color: #1e1a2a; cursor: pointer; font-family: 'Segoe UI', 'Verdana', sans-serif; box-shadow: 0 4px 0 #aa5522; transition: 0.07s linear; z-index: 100; letter-spacing: 1px; }
-        .reset-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #aa5522; }
-        .start-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: flex; justify-content: center; align-items: center; z-index: 200; backdrop-filter: blur(8px); flex-direction: column; gap: 20px; }
-        .start-box { background: #1a1e2a; border-radius: 40px; padding: 30px 40px; text-align: center; border: 1px solid #ffd966; box-shadow: 0 0 30px rgba(0,0,0,0.5); min-width: 300px; }
-        .start-box h2 { color: #ffd966; margin-top: 0; }
-        .start-box input { background: #2a2e3a; border: 1px solid #ffd966; padding: 10px 15px; border-radius: 40px; color: white; font-family: monospace; font-size: 16px; width: 180px; text-align: center; margin: 10px 0; outline: none; }
-        .start-box button { background: #ff8844; border: none; font-size: 18px; font-weight: bold; padding: 10px 20px; border-radius: 40px; margin: 8px; cursor: pointer; font-family: monospace; transition: 0.05s linear; }
-        .start-box button:active { transform: scale(0.96); }
-        .peer-id { background: #2a2e3a; padding: 12px; border-radius: 20px; font-size: 18px; font-weight: bold; word-break: break-all; color: #aaffaa; margin: 15px 0; display: none; text-align: center; }
-        .copy-btn { background: #ffaa44; border: none; padding: 6px 15px; border-radius: 30px; margin-left: 12px; cursor: pointer; font-size: 14px; font-weight: bold; font-family: monospace; }
-        .copy-btn:active { transform: scale(0.95); }
-        .message { color: #ffaa88; margin-top: 12px; font-size: 14px; }
+        * {
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: none;
+        }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: #0a0f1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+        .game-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background: #0b1219;
+            cursor: crosshair;
+            touch-action: none;
+        }
+        .ui-panel {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(8px);
+            border-radius: 20px;
+            padding: 8px 16px;
+            color: #ffd966;
+            font-weight: bold;
+            z-index: 20;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            pointer-events: none;
+        }
+        .status {
+            font-size: 14px;
+            color: #aaffaa;
+        }
+        .reset-btn {
+            position: absolute;
+            bottom: 16px;
+            right: 16px;
+            background: #ff8844;
+            border: none;
+            font-size: 18px;
+            font-weight: bold;
+            padding: 8px 20px;
+            border-radius: 40px;
+            color: #1e1a2a;
+            cursor: pointer;
+            font-family: 'Segoe UI', 'Verdana', sans-serif;
+            box-shadow: 0 4px 0 #aa5522;
+            transition: 0.07s linear;
+            z-index: 100;
+            letter-spacing: 1px;
+        }
+        .reset-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #aa5522;
+        }
+        .start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            backdrop-filter: blur(8px);
+            flex-direction: column;
+            gap: 20px;
+        }
+        .start-box {
+            background: #1a1e2a;
+            border-radius: 40px;
+            padding: 30px 40px;
+            text-align: center;
+            border: 1px solid #ffd966;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            min-width: 280px;
+            max-width: 90%;
+        }
+        .start-box h2 {
+            color: #ffd966;
+            margin-top: 0;
+        }
+        .start-box input {
+            background: #2a2e3a;
+            border: 1px solid #ffd966;
+            padding: 10px 15px;
+            border-radius: 40px;
+            color: white;
+            font-family: monospace;
+            font-size: 16px;
+            width: 70%;
+            text-align: center;
+            margin: 10px 0;
+            outline: none;
+        }
+        .start-box button {
+            background: #ff8844;
+            border: none;
+            font-size: 18px;
+            font-weight: bold;
+            padding: 10px 20px;
+            border-radius: 40px;
+            margin: 8px;
+            cursor: pointer;
+            font-family: monospace;
+            transition: 0.05s linear;
+        }
+        .start-box button:active {
+            transform: scale(0.96);
+        }
+        .peer-id {
+            background: #2a2e3a;
+            padding: 12px;
+            border-radius: 20px;
+            font-size: 16px;
+            font-weight: bold;
+            word-break: break-all;
+            color: #aaffaa;
+            margin: 15px 0;
+            display: none;
+            text-align: center;
+        }
+        .copy-btn {
+            background: #ffaa44;
+            border: none;
+            padding: 6px 15px;
+            border-radius: 30px;
+            margin-left: 12px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            font-family: monospace;
+        }
+        .copy-btn:active {
+            transform: scale(0.95);
+        }
+        .message {
+            color: #ffaa88;
+            margin-top: 12px;
+            font-size: 14px;
+        }
+        @media (max-width: 600px) {
+            .start-box { padding: 20px; }
+            .start-box button { font-size: 16px; padding: 8px 16px; }
+            .reset-btn { padding: 6px 16px; font-size: 14px; }
+            .ui-panel { font-size: 12px; }
+        }
     </style>
 </head>
 <body>
@@ -51,7 +201,7 @@
 
 <script>
     (function(){
-        // ---------- Элементы ----------
+        // ---------- DOM элементы ----------
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const resetBtn = document.getElementById('resetBtn');
@@ -68,21 +218,20 @@
         let currentConn = null;
         let myPeerId = null;
         let gameStarted = false;
-        let isHost = false;
-        let opponentPeerId = null;
         
         // ---------- Игровые состояния ----------
         let canvasWidth, canvasHeight;
-        let player = { x: 0, y: 0, radius: 0, colorHue: 120, spinAngle: 0 };
-        let opponent = { x: 0, y: 0, radius: 0, colorHue: 0, spinAngle: 0 };
+        let player = { x: 0, y: 0, radius: 20, colorHue: 120 };
+        let opponent = { x: 0, y: 0, radius: 20, colorHue: 0 };
         let shells = [];
         let particles = [];
         let comets = [];
         let stars = [];
         let gameActive = true;
-        let winner = null;
+        let winner = null;          // 'player' или 'opponent'
         let gameOverDelay = false;
         
+        // Параметры
         let SHELL_RADIUS = 6;
         let SHELL_SPEED = 7.5;
         let PLAYER_RADIUS = 20;
@@ -175,7 +324,7 @@
         }
         
         function sendHit() {
-            if (currentConn && currentConn.open && gameStarted && gameActive) {
+            if (currentConn && currentConn.open) {
                 currentConn.send({ type: 'hit' });
             }
         }
@@ -199,29 +348,51 @@
             else opponentFlash = 5;
         }
         
+        // Проверка попаданий: наши снаряды → противник; чужие снаряды → мы
         function checkCollisions() {
             if (!gameActive) return;
+            
             for (let i = 0; i < shells.length; i++) {
                 const s = shells[i];
+                // Обновление позиции снаряда
+                s.x += s.vx;
+                s.y += s.vy;
+                
+                // Проверка выхода за границы
+                if (s.x + s.radius < 0 || s.x - s.radius > canvasWidth || s.y + s.radius < 0 || s.y - s.radius > canvasHeight) {
+                    shells.splice(i,1);
+                    i--;
+                    continue;
+                }
+                
                 if (s.isRemote) {
+                    // Снаряд противника – проверяем попадание в нашего игрока
                     const dx = s.x - player.x;
                     const dy = s.y - player.y;
                     if (Math.hypot(dx, dy) < player.radius + s.radius) {
                         gameActive = false;
                         winner = 'opponent';
                         createExplosion(player.x, player.y, true);
-                        sendHit();
                         connectionStatusSpan.innerText = 'ПОРАЖЕНИЕ!';
                         showGameResult('ПОРАЖЕНИЕ! Соперник победил');
                         shells = [];
                         return;
                     }
-                }
-                s.x += s.vx;
-                s.y += s.vy;
-                if (s.x + s.radius < 0 || s.x - s.radius > canvasWidth || s.y + s.radius < 0 || s.y - s.radius > canvasHeight) {
-                    shells.splice(i,1);
-                    i--;
+                } else {
+                    // Наш снаряд – проверяем попадание в противника
+                    const dx = s.x - opponent.x;
+                    const dy = s.y - opponent.y;
+                    if (Math.hypot(dx, dy) < opponent.radius + s.radius) {
+                        // ПОПАДАНИЕ!
+                        gameActive = false;
+                        winner = 'player';
+                        createExplosion(opponent.x, opponent.y, false);
+                        connectionStatusSpan.innerText = 'ПОБЕДА!';
+                        sendHit();   // уведомляем противника, что он проиграл
+                        showGameResult('ПОБЕДА! Вы уничтожили соперника');
+                        shells = [];
+                        return;
+                    }
                 }
             }
         }
@@ -241,10 +412,12 @@
             overlay.style.alignItems = 'center';
             overlay.style.zIndex = '150';
             overlay.style.fontFamily = 'monospace';
-            overlay.style.fontSize = '36px';
+            overlay.style.fontSize = 'clamp(24px, 8vw, 36px)';
             overlay.style.color = '#ffd966';
             overlay.style.flexDirection = 'column';
             overlay.style.gap = '20px';
+            overlay.style.padding = '20px';
+            overlay.style.textAlign = 'center';
             overlay.innerHTML = `<div>${msg}</div><button id="rematchBtn" style="padding:12px 24px;font-size:20px;background:#ff8844;border:none;border-radius:40px;cursor:pointer;">🔁 Играть снова</button>`;
             document.body.appendChild(overlay);
             document.getElementById('rematchBtn').onclick = () => {
@@ -273,7 +446,7 @@
             if (currentConn && currentConn.open) sendPosition();
         }
         
-        // ---------- Графика ----------
+        // ---------- Графика и эффекты (адаптация из исходной игры) ----------
         function generateStars() {
             stars = [];
             for (let i = 0; i < 300; i++) {
@@ -447,7 +620,9 @@
             ctx.font = "bold 20px 'Courier New'";
             ctx.fillStyle = "#ffd966";
             ctx.shadowBlur = 0;
-            ctx.fillText(`❤️ ${gameActive ? 'Бой' : (winner === 'player' ? 'ПОБЕДА!' : 'ПОРАЖЕНИЕ')}`, 20, 50);
+            let statusText = gameActive ? '⚔️ В БОЮ' : (winner === 'player' ? '🏆 ПОБЕДА!' : '💀 ПОРАЖЕНИЕ');
+            ctx.fillText(statusText, 20, 50);
+            // Разделительная линия (верх/низ)
             ctx.beginPath();
             ctx.strokeStyle = "#ffaa55";
             ctx.lineWidth = 3;
@@ -463,7 +638,7 @@
             currentConn = conn;
             conn.on('open', () => {
                 connectionStatusSpan.innerText = gameStarted ? 'В БОЮ' : 'Подключено';
-                if (gameStarted === false) {
+                if (!gameStarted) {
                     gameStarted = true;
                     resetGameLocal();
                 } else {
@@ -480,12 +655,14 @@
                 } else if (data.type === 'fire') {
                     fireAt(data.angle, data.fromX, data.fromY, true);
                 } else if (data.type === 'hit') {
+                    // Противник сообщает, что попал в нас (если вдруг синхронизация)
                     if (gameActive) {
                         gameActive = false;
                         winner = 'opponent';
                         createExplosion(player.x, player.y, true);
                         connectionStatusSpan.innerText = 'ПОРАЖЕНИЕ!';
                         showGameResult('ПОРАЖЕНИЕ! Соперник победил');
+                        shells = [];
                     }
                 } else if (data.type === 'reset') {
                     resetGameLocal();
@@ -507,15 +684,19 @@
             peer = new Peer();
             peer.on('open', (id) => {
                 myPeerId = id;
-                myPeerIdDisplay.innerHTML = `🎮 Ваш ID: <strong style="font-size:22px;">${id}</strong> 
+                myPeerIdDisplay.innerHTML = `🎮 Ваш ID: <strong style="font-size:22px;word-break:break-all;">${id}</strong> 
                     <button class="copy-btn" id="copyIdBtn">📋 Копировать</button>`;
                 myPeerIdDisplay.style.display = 'block';
-                document.getElementById('copyIdBtn').onclick = () => {
-                    navigator.clipboard.writeText(id);
-                    connMessageSpan.innerText = '✅ ID скопирован! Отправьте его другу.';
-                    setTimeout(() => { if (connMessageSpan.innerText === '✅ ID скопирован! Отправьте его другу.') connMessageSpan.innerText = ''; }, 2000);
-                };
-                isHost = true;
+                const copyBtn = document.getElementById('copyIdBtn');
+                if (copyBtn) {
+                    copyBtn.onclick = () => {
+                        navigator.clipboard.writeText(id);
+                        connMessageSpan.innerText = '✅ ID скопирован! Отправьте его другу.';
+                        setTimeout(() => {
+                            if (connMessageSpan.innerText === '✅ ID скопирован! Отправьте его другу.') connMessageSpan.innerText = '';
+                        }, 2000);
+                    };
+                }
                 connMessageSpan.innerText = 'Ожидание подключения...';
                 peer.on('connection', (conn) => {
                     connMessageSpan.innerText = 'Противник подключился!';
@@ -551,7 +732,9 @@
             startScreen.style.display = 'none';
         }
         
-        // ---------- Управление ----------
+        // ---------- Управление (мобильное + ПК) ----------
+        let isDragging = false;
+        
         function handleMove(e) {
             if (!gameStarted || !gameActive) return;
             const rect = canvas.getBoundingClientRect();
@@ -566,6 +749,7 @@
                 mx = (e.clientX - rect.left) * scaleX;
                 my = (e.clientY - rect.top) * scaleY;
             }
+            // Движение только в нижней половине
             if (my > canvasHeight / 2) {
                 player.x = Math.min(canvasWidth - PLAYER_RADIUS - 5, Math.max(PLAYER_RADIUS + 5, mx));
                 player.y = Math.min(canvasHeight - PLAYER_RADIUS - 5, Math.max(canvasHeight/2 + 20, my));
@@ -587,6 +771,7 @@
                 cx = (e.clientX - rect.left) * scaleX;
                 cy = (e.clientY - rect.top) * scaleY;
             }
+            // Стрельба только из верхней половины
             if (cy < canvasHeight / 2) {
                 const dx = cx - player.x;
                 const dy = cy - player.y;
@@ -596,7 +781,17 @@
             }
         }
         
-        // ---------- Цикл ----------
+        // Обработчики событий
+        canvas.addEventListener('mousemove', handleMove);
+        canvas.addEventListener('mousedown', handleFire);
+        canvas.addEventListener('touchmove', handleMove, { passive: false });
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            handleFire(e);
+        });
+        canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+        
+        // ---------- Цикл обновления ----------
         function updateEffects() {
             if (playerFlash > 0) playerFlash--;
             if (opponentFlash > 0) opponentFlash--;
@@ -637,7 +832,9 @@
             if (gameStarted && currentConn && currentConn.open) {
                 resetGameLocal();
                 sendReset();
-            } else if (gameStarted) resetGameLocal();
+            } else if (gameStarted) {
+                resetGameLocal();
+            }
         });
         createBtn.addEventListener('click', createGame);
         connectBtn.addEventListener('click', () => {
@@ -645,12 +842,6 @@
             if (pid) joinGame(pid);
             else connMessageSpan.innerText = 'Введите ID';
         });
-        
-        canvas.addEventListener('mousemove', handleMove);
-        canvas.addEventListener('touchmove', handleMove);
-        canvas.addEventListener('mousedown', handleFire);
-        canvas.addEventListener('touchstart', handleFire);
-        canvas.addEventListener('contextmenu', (e) => e.preventDefault());
         
         resizeCanvasAndReset();
         generateStars();
