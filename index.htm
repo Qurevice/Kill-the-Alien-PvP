@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Kill the Alien — PvP (упрощённая, рабочая)</title>
+    <title>Kill the Alien — PvP (рабочий)</title>
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <style>
         * { user-select: none; -webkit-tap-highlight-color: transparent; touch-action: none; }
@@ -43,7 +43,7 @@
 
 <script>
     (function(){
-        // --- Элементы ---
+        // --- Элементы DOM ---
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const statusSpan = document.getElementById('statusMsg');
@@ -59,23 +59,20 @@
         let cw, ch;
         let player = { x: 0, y: 0, r: 20 };
         let opponent = { x: 0, y: 0, r: 20 };
-        let bullets = [];      // снаряды
-        let gameActive = true; // идёт ли бой
-        let winner = null;     // 'me' или 'enemy'
+        let bullets = [];
+        let gameActive = true;
+        let winner = null;
         let gameOverTimer = null;
-
-        // Настройки
         let bulletSpeed = 8;
         let bulletRadius = 6;
 
         // --- Сеть ---
         let peer = null;
         let conn = null;
-        let myId = null;
-        let gameStarted = false;   // когда соединение установлено и можно играть
+        let gameStarted = false;   // флаг, что соединение установлено и можно играть
 
-        // --- Вспомогательные функции ---
-        function resizeAndReset() {
+        // --- Инициализация размеров ---
+        function resizeCanvas() {
             cw = canvas.width = window.innerWidth;
             ch = canvas.height = window.innerHeight;
             let size = Math.min(cw, ch) * 0.045;
@@ -83,89 +80,22 @@
             opponent.r = size;
             bulletSpeed = size * 0.25;
             bulletRadius = size * 0.3;
-            // Начальные позиции
             player.x = cw/2;
             player.y = ch * 0.8;
             opponent.x = cw/2;
             opponent.y = ch * 0.2;
             clampPositions();
-            if (gameStarted) {
-                // очищаем пули и сбрасываем флаги при рестарте
-                bullets = [];
-                gameActive = true;
-                winner = null;
-                if (gameOverTimer) clearTimeout(gameOverTimer);
-                statusSpan.innerText = "⚔️ В БОЮ";
-            }
         }
 
         function clampPositions() {
             let margin = player.r + 5;
-            // Игрок – нижняя половина
             player.x = Math.min(cw - margin, Math.max(margin, player.x));
             player.y = Math.min(ch - margin, Math.max(ch/2 + 20, player.y));
-            // Противник – верхняя половина
             opponent.x = Math.min(cw - margin, Math.max(margin, opponent.x));
             opponent.y = Math.min(ch/2 - 20, Math.max(margin, opponent.y));
         }
 
-        // --- Отрисовка (минималистичная, но понятная) ---
-        function drawBackground() {
-            ctx.fillStyle = "#0a1018";
-            ctx.fillRect(0, 0, cw, ch);
-            // простая линия разделения
-            ctx.beginPath();
-            ctx.moveTo(0, ch/2);
-            ctx.lineTo(cw, ch/2);
-            ctx.strokeStyle = "#ffaa55";
-            ctx.lineWidth = 3;
-            ctx.setLineDash([10, 10]);
-            ctx.stroke();
-            ctx.setLineDash([]);
-        }
-
-        function drawUFO(x, y, r, hue, isOwn) {
-            ctx.save();
-            ctx.translate(x, y);
-            ctx.shadowBlur = 6;
-            ctx.shadowColor = `hsl(${hue}, 80%, 60%)`;
-            let grad = ctx.createRadialGradient(-4, -4, r*0.2, 0, 0, r);
-            grad.addColorStop(0, `hsl(${hue}, 85%, 70%)`);
-            grad.addColorStop(1, `hsl(${hue}, 75%, 40%)`);
-            ctx.fillStyle = grad;
-            ctx.beginPath();
-            ctx.arc(0, 0, r, 0, Math.PI*2);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(0, 0, r-4, 0, Math.PI*2);
-            ctx.fillStyle = `hsl(${hue}, 80%, 55%)`;
-            ctx.fill();
-            // кабина
-            ctx.beginPath();
-            ctx.arc(0, 0, r*0.45, 0, Math.PI*2);
-            ctx.fillStyle = "#7ec8e3";
-            ctx.fill();
-            ctx.restore();
-        }
-
-        function drawBullets() {
-            for (let b of bullets) {
-                ctx.beginPath();
-                ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
-                ctx.fillStyle = b.isEnemy ? "#ff6666" : "#88ff44";
-                ctx.fill();
-            }
-        }
-
-        function drawUI() {
-            ctx.font = "bold 20px monospace";
-            ctx.fillStyle = "#ffd966";
-            ctx.shadowBlur = 0;
-            let text = gameActive ? "БОЙ" : (winner === 'me' ? "ПОБЕДА!" : "ПОРАЖЕНИЕ");
-            ctx.fillText(text, 15, 45);
-        }
-
-        // --- Логика игры ---
+        // --- Игровая логика ---
         function shoot(angle, fromX, fromY, isEnemy = false) {
             bullets.push({
                 x: fromX, y: fromY,
@@ -187,9 +117,7 @@
                     continue;
                 }
                 if (!gameActive) continue;
-
                 if (b.isEnemy) {
-                    // вражеский снаряд → проверка на игрока
                     let dx = b.x - player.x;
                     let dy = b.y - player.y;
                     if (Math.hypot(dx, dy) < player.r + b.r) {
@@ -202,7 +130,6 @@
                         return;
                     }
                 } else {
-                    // свой снаряд → проверка на противника
                     let dx = b.x - opponent.x;
                     let dy = b.y - opponent.y;
                     if (Math.hypot(dx, dy) < opponent.r + b.r) {
@@ -259,7 +186,7 @@
             if (conn && conn.open) sendPosition();
         }
 
-        // --- Сетевые отправки ---
+        // --- Отправка данных ---
         function sendPosition() {
             if (conn && conn.open && gameStarted && gameActive) {
                 conn.send({ type: 'pos', x: player.x, y: player.y });
@@ -272,7 +199,7 @@
             }
         }
 
-        // --- Обработчики ввода ---
+        // --- Обработка ввода ---
         function onMove(e) {
             if (!gameStarted || !gameActive) return;
             const rect = canvas.getBoundingClientRect();
@@ -319,15 +246,20 @@
         }
 
         // --- Сетевые соединения ---
+        function startGame() {
+            gameStarted = true;
+            startScreenDiv.style.display = 'none';
+            resizeCanvas();    // обновим размеры на всякий случай
+            resetGame();       // сбросим состояние
+            statusSpan.innerText = "⚔️ В БОЮ";
+            sendPosition();
+        }
+
         function setupConnection(connection) {
             conn = connection;
             conn.on('open', () => {
                 console.log("Соединение открыто");
-                gameStarted = true;
-                startScreenDiv.style.display = 'none';
-                resizeAndReset();    // подгоняем размеры и сбрасываем игру
-                statusSpan.innerText = "⚔️ В БОЮ";
-                sendPosition();
+                startGame();   // запускаем игру у себя
             });
             conn.on('data', (data) => {
                 if (!gameStarted) return;
@@ -359,7 +291,6 @@
         function createGame() {
             peer = new Peer();
             peer.on('open', (id) => {
-                myId = id;
                 myIdBox.innerHTML = `🎮 Ваш ID: <strong>${id}</strong> <button id="copyIdBtn">📋 Копировать</button>`;
                 myIdBox.style.display = 'block';
                 document.getElementById('copyIdBtn').onclick = () => {
@@ -368,9 +299,10 @@
                     setTimeout(() => infoMsg.innerText = "", 1500);
                 };
                 infoMsg.innerText = "Ожидание подключения...";
-                peer.on('connection', (conn) => {
+                peer.on('connection', (incomingConn) => {
                     infoMsg.innerText = "Противник подключился! Игра началась.";
-                    setupConnection(conn);
+                    setupConnection(incomingConn);
+                    // Не вызываем startGame() здесь, потому что connection откроется и вызовет conn.on('open')
                 });
             });
             peer.on('error', (err) => {
@@ -379,23 +311,78 @@
         }
 
         function joinGame(peerId) {
+            // Создаём нового peer только если его ещё нет
             if (!peer) {
                 peer = new Peer();
                 peer.on('open', () => {
-                    let conn = peer.connect(peerId);
-                    setupConnection(conn);
+                    const newConn = peer.connect(peerId);
+                    setupConnection(newConn);
                 });
                 peer.on('error', (err) => {
                     infoMsg.innerText = "Ошибка: " + err.type;
                 });
             } else {
-                let conn = peer.connect(peerId);
-                setupConnection(conn);
+                // peer уже есть (например, если ранее был создан, но не использован)
+                const newConn = peer.connect(peerId);
+                setupConnection(newConn);
             }
-            startScreenDiv.style.display = 'none';
+            startScreenDiv.style.display = 'none'; // скрываем экран сразу
         }
 
-        // --- Цикл рисования ---
+        // --- Отрисовка ---
+        function drawBackground() {
+            ctx.fillStyle = "#0a1018";
+            ctx.fillRect(0, 0, cw, ch);
+            ctx.beginPath();
+            ctx.moveTo(0, ch/2);
+            ctx.lineTo(cw, ch/2);
+            ctx.strokeStyle = "#ffaa55";
+            ctx.lineWidth = 3;
+            ctx.setLineDash([10, 10]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        function drawUFO(x, y, r, hue, isOwn) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.shadowBlur = 6;
+            ctx.shadowColor = `hsl(${hue}, 80%, 60%)`;
+            let grad = ctx.createRadialGradient(-4, -4, r*0.2, 0, 0, r);
+            grad.addColorStop(0, `hsl(${hue}, 85%, 70%)`);
+            grad.addColorStop(1, `hsl(${hue}, 75%, 40%)`);
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(0, 0, r, 0, Math.PI*2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(0, 0, r-4, 0, Math.PI*2);
+            ctx.fillStyle = `hsl(${hue}, 80%, 55%)`;
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(0, 0, r*0.45, 0, Math.PI*2);
+            ctx.fillStyle = "#7ec8e3";
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function drawBullets() {
+            for (let b of bullets) {
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
+                ctx.fillStyle = b.isEnemy ? "#ff6666" : "#88ff44";
+                ctx.fill();
+            }
+        }
+
+        function drawUI() {
+            ctx.font = "bold 20px monospace";
+            ctx.fillStyle = "#ffd966";
+            ctx.shadowBlur = 0;
+            let text = gameActive ? "БОЙ" : (winner === 'me' ? "ПОБЕДА!" : "ПОРАЖЕНИЕ");
+            ctx.fillText(text, 15, 45);
+        }
+
         function draw() {
             drawBackground();
             drawUFO(opponent.x, opponent.y, opponent.r, 0, false);
@@ -416,9 +403,10 @@
             requestAnimationFrame(animate);
         }
 
-        // --- Инициализация событий ---
+        // --- События ---
         window.addEventListener('resize', () => {
-            resizeAndReset();
+            resizeCanvas();
+            if (gameStarted) resetGame();
         });
         resetBtn.addEventListener('click', () => {
             if (gameStarted && conn && conn.open) {
@@ -430,7 +418,7 @@
         });
         createBtn.addEventListener('click', createGame);
         joinBtn.addEventListener('click', () => {
-            let id = peerInput.value.trim();
+            const id = peerInput.value.trim();
             if (id) joinGame(id);
             else infoMsg.innerText = "Введите ID";
         });
@@ -441,7 +429,7 @@
         canvas.addEventListener('touchstart', (e) => { e.preventDefault(); onFire(e); });
         canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
-        resizeAndReset();
+        resizeCanvas();
         animate();
     })();
 </script>
