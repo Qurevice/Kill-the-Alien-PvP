@@ -3,62 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Kill the Alien — PvP с комнатой (стабильный)</title>
+    <title>Kill the Alien — PvP | Исправленная версия</title>
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <style>
         * { user-select: none; -webkit-tap-highlight-color: transparent; touch-action: none; }
         body { margin: 0; min-height: 100vh; background: #0a0f1a; overflow: hidden; position: fixed; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; font-family: 'Courier New', monospace; }
         .game-wrapper { position: relative; width: 100%; height: 100%; }
-        canvas { display: block; width: 100%; height: 100%; background: #0b1219; cursor: crosshair; touch-action: none; }
-        .ui-panel { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); padding: 6px 12px; border-radius: 20px; color: #ffd966; z-index: 20; pointer-events: none; }
+        canvas { display: block; width: 100%; height: 100%; background: #0b1219; cursor: crosshair; }
+        .ui-panel { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.6); padding: 6px 12px; border-radius: 20px; color: #ffd966; z-index: 20; }
         .reset-btn { position: absolute; bottom: 16px; right: 16px; background: #ff8844; border: none; padding: 6px 15px; border-radius: 30px; font-weight: bold; cursor: pointer; z-index: 100; display: none; }
         .start-screen, .lobby-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: flex; justify-content: center; align-items: center; z-index: 200; backdrop-filter: blur(8px); flex-direction: column; }
         .lobby-screen { z-index: 210; }
         .start-box, .lobby-box { background: #1a1e2a; border-radius: 30px; padding: 25px; text-align: center; border: 1px solid #ffd966; max-width: 90%; min-width: 280px; }
         .start-box button, .start-box input, .lobby-box button { margin: 8px; padding: 8px 15px; border-radius: 30px; border: none; font-size: 16px; font-family: monospace; font-weight: bold; }
-        .start-box input { background: #2a2e3a; color: white; text-align: center; outline: none; }
-        .start-box button, .lobby-box button { background: #ff8844; cursor: pointer; transition: 0.07s linear; }
-        .start-box button:active, .lobby-box button:active { transform: scale(0.96); }
+        .start-box input { background: #2a2e3a; color: white; text-align: center; outline: none; width: 70%; }
+        .start-box button, .lobby-box button { background: #ff8844; cursor: pointer; }
         .peer-id { background: #2a2e3a; padding: 10px; border-radius: 20px; color: #aaffaa; word-break: break-all; margin: 15px 0; }
         .message { color: #ffaa88; margin-top: 10px; font-size: 14px; }
-        .copy-btn { background: #ffaa44; border: none; padding: 6px 12px; border-radius: 30px; margin-left: 12px; cursor: pointer; font-size: 14px; font-weight: bold; }
+        .copy-btn { background: #ffaa44; border: none; padding: 6px 12px; border-radius: 30px; margin-left: 12px; cursor: pointer; }
         .player-list { background: #0f121c; border-radius: 20px; padding: 10px; margin: 15px 0; text-align: left; }
-        .player-item { color: #aaffaa; margin: 5px 0; font-size: 14px; }
+        .player-item { color: #aaffaa; margin: 5px 0; }
         .waiting-text { color: #ffaa88; margin-top: 10px; }
-        .error-text { color: #ff6666; margin-top: 10px; font-size: 14px; }
+        .error-text { color: #ff6666; margin-top: 10px; }
     </style>
 </head>
 <body>
 <div class="game-wrapper">
     <canvas id="gameCanvas"></canvas>
-    <div class="ui-panel">
-        <span id="gameStatusText">⚡ НЕ В ИГРЕ</span>
-    </div>
+    <div class="ui-panel"><span id="gameStatusText">⚡ НЕ В ИГРЕ</span></div>
     <button id="resetBtn" class="reset-btn">♻️ РЕСТАРТ</button>
 
-    <!-- Главный экран -->
     <div id="startScreen" class="start-screen">
         <div class="start-box">
             <h2>👽 KILL THE ALIEN 👾</h2>
             <button id="createGameBtn">✨ СОЗДАТЬ КОМНАТУ</button>
-            <div>
-                <input id="peerInput" placeholder="Введите ID комнаты">
-                <button id="joinGameBtn">🔌 ВОЙТИ В КОМНАТУ</button>
-            </div>
+            <div><input id="peerInput" placeholder="Введите ID комнаты"><button id="joinGameBtn">🔌 ВОЙТИ</button></div>
             <div id="infoMessage" class="message"></div>
+            <div style="margin-top:15px; font-size:12px; color:#888;">Если ошибка — попробуйте обновить страницу</div>
         </div>
     </div>
 
-    <!-- Экран комнаты -->
     <div id="lobbyScreen" class="lobby-screen" style="display: none;">
         <div class="lobby-box">
             <h2>🚀 КОМНАТА</h2>
             <div id="lobbyIdDisplay" class="peer-id"></div>
-            <div class="player-list">
-                <div>👤 Игроки в комнате:</div>
-                <div id="playerListContainer"></div>
-            </div>
-            <div id="lobbyWaitingMessage" class="waiting-text">Ожидание подключения второго игрока...</div>
+            <div class="player-list"><div>👤 Игроки:</div><div id="playerListContainer"></div></div>
+            <div id="lobbyWaitingMessage" class="waiting-text">Ожидание подключения...</div>
             <button id="startGameBtn" style="display: none; background: #44aa44;">▶ НАЧАТЬ ИГРУ</button>
             <button id="leaveLobbyBtn" style="background: #885544;">🚪 Выйти</button>
             <div id="lobbyErrorMsg" class="error-text" style="display: none;"></div>
@@ -67,518 +57,320 @@
 </div>
 
 <script>
-    (function() {
-        // --- DOM ---
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const gameStatusSpan = document.getElementById('gameStatusText');
-        const resetBtn = document.getElementById('resetBtn');
-        const startScreenDiv = document.getElementById('startScreen');
-        const lobbyScreenDiv = document.getElementById('lobbyScreen');
-        const createBtn = document.getElementById('createGameBtn');
-        const joinBtn = document.getElementById('joinGameBtn');
-        const peerInput = document.getElementById('peerInput');
-        const infoMsgSpan = document.getElementById('infoMessage');
-        const lobbyIdDisplay = document.getElementById('lobbyIdDisplay');
-        const playerListContainer = document.getElementById('playerListContainer');
-        const lobbyWaitingMsg = document.getElementById('lobbyWaitingMessage');
-        const startGameBtn = document.getElementById('startGameBtn');
-        const leaveLobbyBtn = document.getElementById('leaveLobbyBtn');
-        const lobbyErrorMsg = document.getElementById('lobbyErrorMsg');
+(function(){
+    // --- DOM ---
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const gameStatusSpan = document.getElementById('gameStatusText');
+    const resetBtn = document.getElementById('resetBtn');
+    const startScreenDiv = document.getElementById('startScreen');
+    const lobbyScreenDiv = document.getElementById('lobbyScreen');
+    const createBtn = document.getElementById('createGameBtn');
+    const joinBtn = document.getElementById('joinGameBtn');
+    const peerInput = document.getElementById('peerInput');
+    const infoMsgSpan = document.getElementById('infoMessage');
+    const lobbyIdDisplay = document.getElementById('lobbyIdDisplay');
+    const playerListContainer = document.getElementById('playerListContainer');
+    const lobbyWaitingMsg = document.getElementById('lobbyWaitingMessage');
+    const startGameBtn = document.getElementById('startGameBtn');
+    const leaveLobbyBtn = document.getElementById('leaveLobbyBtn');
+    const lobbyErrorMsg = document.getElementById('lobbyErrorMsg');
 
-        // --- Игровые параметры ---
-        let cw, ch;
-        let player = { x: 0, y: 0, r: 20 };
-        let opponent = { x: 0, y: 0, r: 20 };
-        let bullets = [];
-        let gameActive = false;
-        let winner = null;
-        let gameOverTimer = null;
-        let bulletSpeed = 8, bulletRadius = 6;
+    // --- Игровые параметры ---
+    let cw, ch;
+    let player = { x: 0, y: 0, r: 20 };
+    let opponent = { x: 0, y: 0, r: 20 };
+    let bullets = [];
+    let gameActive = false;
+    let winner = null;
+    let gameOverTimer = null;
+    let bulletSpeed = 8, bulletRadius = 6;
 
-        // --- Сеть ---
-        let peer = null;
-        let dataConnection = null;
-        let myPeerId = null;
-        let isHost = false;
-        let gameStarted = false;    // true после нажатия "Начать"
+    // --- Сеть ---
+    let peer = null;
+    let dataConnection = null;
+    let myPeerId = null;
+    let isHost = false;
+    let gameStarted = false;
+    let isConnecting = false;
 
-        // --- Настройки серверов (fallback) ---
-        const servers = [
-            { host: '0.peerjs.com', port: 443, secure: true, path: '/' },
-            { host: 'peerjs-server.cyclic.app', port: 443, secure: true, path: '/' },
-            { host: 'my-own-server.herokuapp.com', port: 443, secure: true, path: '/' } // запасной, может не работать
-        ];
-        let currentServerIndex = 0;
-        let isConnecting = false;
+    // --- Проверенные серверы (с приоритетом) ---
+    const servers = [
+        { host: 'peerjs-server.cyclic.app', port: 443, secure: true, path: '/' },
+        { host: '0.peerjs.com', port: 443, secure: true, path: '/' },
+        { host: 'my-own-server.cyclic.app', port: 443, secure: true, path: '/' }
+    ];
+    let currentServerIndex = 0;
 
-        // --- Вспомогательные функции игры ---
-        function resizeCanvasAndReset() {
-            cw = canvas.width = window.innerWidth;
-            ch = canvas.height = window.innerHeight;
-            let size = Math.min(cw, ch) * 0.045;
-            player.r = size;
-            opponent.r = size;
-            bulletSpeed = size * 0.25;
-            bulletRadius = size * 0.3;
-            player.x = cw/2;
-            player.y = ch * 0.8;
-            opponent.x = cw/2;
-            opponent.y = ch * 0.2;
-            clampPositions();
-            if (gameStarted) {
-                bullets = [];
-                gameActive = true;
-                winner = null;
-                if (gameOverTimer) clearTimeout(gameOverTimer);
-                updateGameStatusText();
+    // --- Игровые функции (те же) ---
+    function resizeCanvasAndReset() {
+        cw = canvas.width = window.innerWidth;
+        ch = canvas.height = window.innerHeight;
+        let size = Math.min(cw, ch) * 0.045;
+        player.r = size; opponent.r = size;
+        bulletSpeed = size * 0.25; bulletRadius = size * 0.3;
+        player.x = cw/2; player.y = ch * 0.8;
+        opponent.x = cw/2; opponent.y = ch * 0.2;
+        clampPositions();
+        if (gameStarted) { bullets = []; gameActive = true; winner = null; if (gameOverTimer) clearTimeout(gameOverTimer); updateGameStatusText(); }
+    }
+    function clampPositions() {
+        let margin = player.r + 5;
+        player.x = Math.min(cw - margin, Math.max(margin, player.x));
+        player.y = Math.min(ch - margin, Math.max(ch/2 + 20, player.y));
+        opponent.x = Math.min(cw - margin, Math.max(margin, opponent.x));
+        opponent.y = Math.min(ch/2 - 20, Math.max(margin, opponent.y));
+    }
+    function updateGameStatusText() {
+        if (!gameStarted) gameStatusSpan.innerText = "⚡ ОЖИДАНИЕ";
+        else if (!gameActive) gameStatusSpan.innerText = (winner === 'me') ? "🏆 ПОБЕДА!" : "💀 ПОРАЖЕНИЕ";
+        else gameStatusSpan.innerText = "⚔️ В БОЮ";
+    }
+    function shoot(angle, fromX, fromY, isEnemy = false) {
+        if (!gameStarted || !gameActive) return;
+        bullets.push({ x: fromX, y: fromY, vx: Math.cos(angle)*bulletSpeed, vy: Math.sin(angle)*bulletSpeed, r: bulletRadius, isEnemy });
+    }
+    function updateBullets() {
+        for (let i=0; i<bullets.length; i++) {
+            let b = bullets[i];
+            b.x += b.vx; b.y += b.vy;
+            if (b.x + b.r < 0 || b.x - b.r > cw || b.y + b.r < 0 || b.y - b.r > ch) { bullets.splice(i,1); i--; continue; }
+            if (!gameActive) continue;
+            if (b.isEnemy) {
+                if (Math.hypot(b.x - player.x, b.y - player.y) < player.r + b.r) {
+                    gameActive = false; winner = 'enemy';
+                    if (dataConnection && dataConnection.open) dataConnection.send({ type: 'hit' });
+                    showGameOver("ВЫ ПРОИГРАЛИ!");
+                    bullets = []; updateGameStatusText(); return;
+                }
+            } else {
+                if (Math.hypot(b.x - opponent.x, b.y - opponent.y) < opponent.r + b.r) {
+                    gameActive = false; winner = 'me';
+                    if (dataConnection && dataConnection.open) dataConnection.send({ type: 'hit' });
+                    showGameOver("ВЫ ПОБЕДИЛИ!");
+                    bullets = []; updateGameStatusText(); return;
+                }
             }
         }
+    }
+    function resetGameLocally() {
+        if (!gameStarted) return;
+        gameActive = true; winner = null; bullets = [];
+        if (gameOverTimer) clearTimeout(gameOverTimer); gameOverTimer = null;
+        player.x = cw/2; player.y = ch * 0.8;
+        opponent.x = cw/2; opponent.y = ch * 0.2;
+        clampPositions(); updateGameStatusText();
+        if (dataConnection && dataConnection.open) sendMyPosition();
+    }
+    function showGameOver(msg) {
+        if (gameOverTimer) return;
+        gameOverTimer = setTimeout(() => {
+            let overlay = document.createElement('div');
+            overlay.style.position = 'absolute'; overlay.style.top = 0; overlay.style.left = 0; overlay.style.width = '100%'; overlay.style.height = '100%'; overlay.style.background = 'rgba(0,0,0,0.85)';
+            overlay.style.display = 'flex'; overlay.style.justifyContent = 'center'; overlay.style.alignItems = 'center'; overlay.style.flexDirection = 'column'; overlay.style.zIndex = 150;
+            overlay.innerHTML = `<div style="color:#ffd966;font-size:32px;margin-bottom:20px;">${msg}</div><button id="rematchBtn" style="padding:10px 20px;background:#ff8844;border:none;border-radius:30px;">🔁 ИГРАТЬ СНОВА</button>`;
+            document.body.appendChild(overlay);
+            document.getElementById('rematchBtn').onclick = () => { overlay.remove(); resetGameLocally(); if (dataConnection && dataConnection.open) dataConnection.send({ type: 'reset' }); };
+        }, 50);
+    }
+    function sendMyPosition() { if (dataConnection && dataConnection.open && gameStarted && gameActive) dataConnection.send({ type: 'pos', x: player.x, y: player.y }); }
+    function sendMyShot(angle) { if (dataConnection && dataConnection.open && gameStarted && gameActive) dataConnection.send({ type: 'shoot', angle, x: player.x, y: player.y }); }
 
-        function clampPositions() {
+    // --- Управление ---
+    function onMove(e) {
+        if (!gameStarted || !gameActive) return;
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = cw / rect.width, scaleY = ch / rect.height;
+        let mx, my;
+        if (e.touches) { mx = (e.touches[0].clientX - rect.left) * scaleX; my = (e.touches[0].clientY - rect.top) * scaleY; e.preventDefault(); }
+        else { mx = (e.clientX - rect.left) * scaleX; my = (e.clientY - rect.top) * scaleY; }
+        if (my > ch/2) {
             let margin = player.r + 5;
-            player.x = Math.min(cw - margin, Math.max(margin, player.x));
-            player.y = Math.min(ch - margin, Math.max(ch/2 + 20, player.y));
-            opponent.x = Math.min(cw - margin, Math.max(margin, opponent.x));
-            opponent.y = Math.min(ch/2 - 20, Math.max(margin, opponent.y));
+            let newX = Math.min(cw - margin, Math.max(margin, mx));
+            let newY = Math.min(ch - margin, Math.max(ch/2 + 20, my));
+            if (player.x !== newX || player.y !== newY) { player.x = newX; player.y = newY; sendMyPosition(); }
         }
-
-        function updateGameStatusText() {
-            if (!gameStarted) gameStatusSpan.innerText = "⚡ ОЖИДАНИЕ";
-            else if (!gameActive) gameStatusSpan.innerText = (winner === 'me') ? "🏆 ПОБЕДА!" : "💀 ПОРАЖЕНИЕ";
-            else gameStatusSpan.innerText = "⚔️ В БОЮ";
+    }
+    function onFire(e) {
+        if (!gameStarted || !gameActive) return;
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = cw / rect.width, scaleY = ch / rect.height;
+        let cx, cy;
+        if (e.touches) { cx = (e.touches[0].clientX - rect.left) * scaleX; cy = (e.touches[0].clientY - rect.top) * scaleY; e.preventDefault(); }
+        else { cx = (e.clientX - rect.left) * scaleX; cy = (e.clientY - rect.top) * scaleY; }
+        if (cy < ch/2) {
+            let angle = Math.atan2(cy - player.y, cx - player.x);
+            shoot(angle, player.x, player.y, false);
+            sendMyShot(angle);
         }
+    }
 
-        function shoot(angle, fromX, fromY, isEnemy = false) {
-            if (!gameStarted || !gameActive) return;
-            bullets.push({
-                x: fromX, y: fromY,
-                vx: Math.cos(angle) * bulletSpeed,
-                vy: Math.sin(angle) * bulletSpeed,
-                r: bulletRadius,
-                isEnemy: isEnemy
-            });
-        }
+    // --- Отрисовка ---
+    function drawBackground() {
+        let grad = ctx.createLinearGradient(0,0,0,ch);
+        grad.addColorStop(0,"#0a1018"); grad.addColorStop(1,"#03060c");
+        ctx.fillStyle = grad; ctx.fillRect(0,0,cw,ch);
+        ctx.beginPath(); ctx.moveTo(0,ch/2); ctx.lineTo(cw,ch/2);
+        ctx.strokeStyle = "#ffaa55"; ctx.lineWidth = 3; ctx.setLineDash([10,15]); ctx.stroke(); ctx.setLineDash([]);
+    }
+    function drawUFO(x,y,r,hue,isOwn) {
+        ctx.save(); ctx.translate(x,y); ctx.shadowBlur = 8; ctx.shadowColor = `hsl(${hue},80%,60%)`;
+        let grad = ctx.createRadialGradient(-4,-4,r*0.2,0,0,r);
+        grad.addColorStop(0,`hsl(${hue},85%,70%)`); grad.addColorStop(1,`hsl(${hue},75%,40%)`);
+        ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(0,0,r-4,0,Math.PI*2); ctx.fillStyle = `hsl(${hue},80%,55%)`; ctx.fill();
+        let cockpit = r*0.45; ctx.beginPath(); ctx.arc(0,0,cockpit,0,Math.PI*2); ctx.fillStyle = "#7ec8e3"; ctx.fill();
+        ctx.beginPath(); ctx.arc(0,0,cockpit-2,0,Math.PI*2); ctx.fillStyle = "#9bdaf5"; ctx.fill();
+        ctx.restore();
+    }
+    function drawBullets() { for (let b of bullets) { ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fillStyle = b.isEnemy ? "#ff6666" : "#88ff44"; ctx.fill(); } }
+    function draw() { drawBackground(); drawUFO(opponent.x,opponent.y,opponent.r,0,false); drawUFO(player.x,player.y,player.r,120,true); drawBullets(); }
+    function animate() { if (gameStarted && gameActive) updateBullets(); draw(); requestAnimationFrame(animate); }
 
-        function updateBullets() {
-            for (let i = 0; i < bullets.length; i++) {
-                let b = bullets[i];
-                b.x += b.vx;
-                b.y += b.vy;
-                if (b.x + b.r < 0 || b.x - b.r > cw || b.y + b.r < 0 || b.y - b.r > ch) {
-                    bullets.splice(i,1);
-                    i--;
-                    continue;
-                }
-                if (!gameActive) continue;
-                if (b.isEnemy) {
-                    let dx = b.x - player.x;
-                    let dy = b.y - player.y;
-                    if (Math.hypot(dx, dy) < player.r + b.r) {
-                        gameActive = false;
-                        winner = 'enemy';
-                        if (dataConnection && dataConnection.open) dataConnection.send({ type: 'hit' });
-                        showGameOver("ВЫ ПРОИГРАЛИ!");
-                        bullets = [];
-                        updateGameStatusText();
-                        return;
-                    }
-                } else {
-                    let dx = b.x - opponent.x;
-                    let dy = b.y - opponent.y;
-                    if (Math.hypot(dx, dy) < opponent.r + b.r) {
-                        gameActive = false;
-                        winner = 'me';
-                        if (dataConnection && dataConnection.open) dataConnection.send({ type: 'hit' });
-                        showGameOver("ВЫ ПОБЕДИЛИ!");
-                        bullets = [];
-                        updateGameStatusText();
-                        return;
-                    }
-                }
-            }
-        }
-
-        function resetGameLocally() {
-            if (!gameStarted) return;
-            gameActive = true;
-            winner = null;
-            bullets = [];
-            if (gameOverTimer) clearTimeout(gameOverTimer);
-            gameOverTimer = null;
-            player.x = cw/2;
-            player.y = ch * 0.8;
-            opponent.x = cw/2;
-            opponent.y = ch * 0.2;
-            clampPositions();
-            updateGameStatusText();
-            if (dataConnection && dataConnection.open) sendMyPosition();
-        }
-
-        function showGameOver(msg) {
-            if (gameOverTimer) return;
-            gameOverTimer = setTimeout(() => {
-                let overlay = document.createElement('div');
-                overlay.style.position = 'absolute';
-                overlay.style.top = 0;
-                overlay.style.left = 0;
-                overlay.style.width = '100%';
-                overlay.style.height = '100%';
-                overlay.style.background = 'rgba(0,0,0,0.85)';
-                overlay.style.display = 'flex';
-                overlay.style.justifyContent = 'center';
-                overlay.style.alignItems = 'center';
-                overlay.style.flexDirection = 'column';
-                overlay.style.zIndex = 150;
-                overlay.innerHTML = `<div style="color:#ffd966;font-size:32px;margin-bottom:20px;">${msg}</div>
-                                     <button id="rematchBtn" style="padding:10px 20px;background:#ff8844;border:none;border-radius:30px;font-weight:bold;">🔁 ИГРАТЬ СНОВА</button>`;
-                document.body.appendChild(overlay);
-                document.getElementById('rematchBtn').onclick = () => {
-                    overlay.remove();
-                    resetGameLocally();
-                    if (dataConnection && dataConnection.open) dataConnection.send({ type: 'reset' });
-                };
-            }, 50);
-        }
-
-        function sendMyPosition() {
-            if (dataConnection && dataConnection.open && gameStarted && gameActive) {
-                dataConnection.send({ type: 'pos', x: player.x, y: player.y });
-            }
-        }
-
-        function sendMyShot(angle) {
-            if (dataConnection && dataConnection.open && gameStarted && gameActive) {
-                dataConnection.send({ type: 'shoot', angle: angle, x: player.x, y: player.y });
-            }
-        }
-
-        // --- Управление ---
-        function onMove(e) {
-            if (!gameStarted || !gameActive) return;
-            const rect = canvas.getBoundingClientRect();
-            const scaleX = cw / rect.width;
-            const scaleY = ch / rect.height;
-            let mx, my;
-            if (e.touches) {
-                mx = (e.touches[0].clientX - rect.left) * scaleX;
-                my = (e.touches[0].clientY - rect.top) * scaleY;
-                e.preventDefault();
+    // --- Лобби и сеть ---
+    function updateLobbyUI() {
+        if (lobbyScreenDiv.style.display === 'none') return;
+        if (isHost) {
+            playerListContainer.innerHTML = '<div class="player-item">👑 Хост (вы)</div>';
+            if (dataConnection && dataConnection.open) {
+                playerListContainer.innerHTML += '<div class="player-item">👤 Игрок 2 (подключён)</div>';
+                lobbyWaitingMsg.style.display = 'none';
+                startGameBtn.style.display = 'inline-block';
             } else {
-                mx = (e.clientX - rect.left) * scaleX;
-                my = (e.clientY - rect.top) * scaleY;
-            }
-            if (my > ch/2) {
-                let margin = player.r + 5;
-                let newX = Math.min(cw - margin, Math.max(margin, mx));
-                let newY = Math.min(ch - margin, Math.max(ch/2 + 20, my));
-                if (player.x !== newX || player.y !== newY) {
-                    player.x = newX;
-                    player.y = newY;
-                    sendMyPosition();
-                }
-            }
-        }
-
-        function onFire(e) {
-            if (!gameStarted || !gameActive) return;
-            const rect = canvas.getBoundingClientRect();
-            const scaleX = cw / rect.width;
-            const scaleY = ch / rect.height;
-            let cx, cy;
-            if (e.touches) {
-                cx = (e.touches[0].clientX - rect.left) * scaleX;
-                cy = (e.touches[0].clientY - rect.top) * scaleY;
-                e.preventDefault();
-            } else {
-                cx = (e.clientX - rect.left) * scaleX;
-                cy = (e.clientY - rect.top) * scaleY;
-            }
-            if (cy < ch/2) {
-                let dx = cx - player.x;
-                let dy = cy - player.y;
-                let angle = Math.atan2(dy, dx);
-                shoot(angle, player.x, player.y, false);
-                sendMyShot(angle);
-            }
-        }
-
-        // --- Отрисовка ---
-        function drawBackground() {
-            let grad = ctx.createLinearGradient(0, 0, 0, ch);
-            grad.addColorStop(0, "#0a1018");
-            grad.addColorStop(1, "#03060c");
-            ctx.fillStyle = grad;
-            ctx.fillRect(0, 0, cw, ch);
-            ctx.beginPath();
-            ctx.moveTo(0, ch/2);
-            ctx.lineTo(cw, ch/2);
-            ctx.strokeStyle = "#ffaa55";
-            ctx.lineWidth = 3;
-            ctx.setLineDash([10, 15]);
-            ctx.stroke();
-            ctx.setLineDash([]);
-        }
-
-        function drawUFO(x, y, r, hue, isOwn) {
-            ctx.save();
-            ctx.translate(x, y);
-            ctx.shadowBlur = 8;
-            ctx.shadowColor = `hsl(${hue}, 80%, 60%)`;
-            let grad = ctx.createRadialGradient(-4, -4, r*0.2, 0, 0, r);
-            grad.addColorStop(0, `hsl(${hue}, 85%, 70%)`);
-            grad.addColorStop(1, `hsl(${hue}, 75%, 40%)`);
-            ctx.fillStyle = grad;
-            ctx.beginPath();
-            ctx.arc(0, 0, r, 0, Math.PI*2);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(0, 0, r-4, 0, Math.PI*2);
-            ctx.fillStyle = `hsl(${hue}, 80%, 55%)`;
-            ctx.fill();
-            let cockpit = r * 0.45;
-            ctx.beginPath();
-            ctx.arc(0, 0, cockpit, 0, Math.PI*2);
-            ctx.fillStyle = "#7ec8e3";
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(0, 0, cockpit-2, 0, Math.PI*2);
-            ctx.fillStyle = "#9bdaf5";
-            ctx.fill();
-            ctx.restore();
-        }
-
-        function drawBullets() {
-            for (let b of bullets) {
-                ctx.beginPath();
-                ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
-                ctx.fillStyle = b.isEnemy ? "#ff6666" : "#88ff44";
-                ctx.fill();
-            }
-        }
-
-        function draw() {
-            drawBackground();
-            drawUFO(opponent.x, opponent.y, opponent.r, 0, false);
-            drawUFO(player.x, player.y, player.r, 120, true);
-            drawBullets();
-        }
-
-        function animate() {
-            if (gameStarted && gameActive) updateBullets();
-            draw();
-            requestAnimationFrame(animate);
-        }
-
-        // --- Лобби и подключение с fallback ---
-        function updateLobbyUI() {
-            if (lobbyScreenDiv.style.display === 'none') return;
-            if (isHost) {
-                playerListContainer.innerHTML = '<div class="player-item">👑 Хост (вы)</div>';
-                if (dataConnection && dataConnection.open) {
-                    playerListContainer.innerHTML += '<div class="player-item">👤 Игрок 2 (подключён)</div>';
-                    lobbyWaitingMsg.style.display = 'none';
-                    startGameBtn.style.display = 'inline-block';
-                } else {
-                    playerListContainer.innerHTML += '<div class="player-item" style="color:#888;">⏳ Ожидание игрока...</div>';
-                    lobbyWaitingMsg.style.display = 'block';
-                    startGameBtn.style.display = 'none';
-                }
-            } else {
-                playerListContainer.innerHTML = '<div class="player-item">👑 Хост (создатель)</div>';
-                playerListContainer.innerHTML += '<div class="player-item">👤 Вы (подключены)</div>';
-                lobbyWaitingMsg.innerText = 'Ожидаем, когда хост начнёт игру...';
+                playerListContainer.innerHTML += '<div class="player-item" style="color:#888;">⏳ Ожидание игрока...</div>';
                 lobbyWaitingMsg.style.display = 'block';
                 startGameBtn.style.display = 'none';
             }
+        } else {
+            playerListContainer.innerHTML = '<div class="player-item">👑 Хост (создатель)</div><div class="player-item">👤 Вы (подключены)</div>';
+            lobbyWaitingMsg.innerText = 'Ожидаем, когда хост начнёт игру...';
+            lobbyWaitingMsg.style.display = 'block';
+            startGameBtn.style.display = 'none';
         }
+    }
+    function startTheGame() { if (!isHost || !dataConnection || !dataConnection.open) return; dataConnection.send({ type: 'start' }); launchGame(); }
+    function launchGame() {
+        gameStarted = true; gameActive = true; winner = null; bullets = [];
+        resizeCanvasAndReset(); resetBtn.style.display = 'block';
+        lobbyScreenDiv.style.display = 'none'; startScreenDiv.style.display = 'none';
+        updateGameStatusText(); sendMyPosition();
+    }
+    function exitToLobby() {
+        if (dataConnection) dataConnection.close();
+        if (peer) peer.destroy();
+        peer = null; dataConnection = null; gameStarted = false; gameActive = false;
+        resetBtn.style.display = 'none';
+        lobbyScreenDiv.style.display = 'none'; startScreenDiv.style.display = 'flex';
+        infoMsgSpan.innerText = ''; lobbyErrorMsg.style.display = 'none';
+        isConnecting = false;
+    }
+    function setupDataConnection(conn, isInitiator = false) {
+        dataConnection = conn;
+        dataConnection.on('open', () => { updateLobbyUI(); });
+        dataConnection.on('data', (data) => {
+            if (data.type === 'start' && !isHost) launchGame();
+            else if (data.type === 'pos' && gameStarted) { opponent.x = data.x; opponent.y = data.y; clampPositions(); }
+            else if (data.type === 'shoot' && gameStarted) shoot(data.angle, data.x, data.y, true);
+            else if (data.type === 'hit' && gameStarted) {
+                if (gameActive) { gameActive = false; winner = isHost ? 'enemy' : 'me'; bullets = []; showGameOver(isHost ? "ПОРАЖЕНИЕ!" : "ПОБЕДА!"); updateGameStatusText(); }
+            }
+            else if (data.type === 'reset' && gameStarted) resetGameLocally();
+        });
+        dataConnection.on('close', () => {
+            if (gameStarted) { showGameOver("Соединение потеряно"); gameStarted = false; }
+            else exitToLobby();
+        });
+    }
 
-        function startTheGame() {
-            if (!isHost) return;
-            if (!dataConnection || !dataConnection.open) return;
-            dataConnection.send({ type: 'start' });
-            launchGame();
+    // --- Создание комнаты с fallback ---
+    function createLobbyWithFallback() {
+        if (isConnecting) return;
+        isConnecting = true;
+        currentServerIndex = 0;
+        tryCreatePeer();
+    }
+    function tryCreatePeer() {
+        if (currentServerIndex >= servers.length) {
+            infoMsgSpan.innerText = "Не удалось подключиться ни к одному серверу. Попробуйте позже или используйте локальный сервер (см. инструкцию)";
+            lobbyErrorMsg.innerText = "Ошибка: все серверы недоступны. Обновите страницу или запустите свой PeerJS сервер.";
+            lobbyErrorMsg.style.display = 'block';
+            isConnecting = false;
+            return;
         }
-
-        function launchGame() {
-            gameStarted = true;
-            gameActive = true;
-            winner = null;
-            bullets = [];
-            resizeCanvasAndReset();
-            resetBtn.style.display = 'block';
-            lobbyScreenDiv.style.display = 'none';
+        const server = servers[currentServerIndex];
+        infoMsgSpan.innerText = `Подключение к серверу ${server.host}...`;
+        peer = new Peer(undefined, server);
+        peer.on('open', (id) => {
+            myPeerId = id;
+            isHost = true;
+            // Отображаем ID и делаем кнопку копирования
+            lobbyIdDisplay.innerHTML = `🏷️ ID комнаты: <strong>${id}</strong> <button class="copy-btn" id="copyLobbyIdBtn">📋 Копировать</button>`;
+            const copyBtn = document.getElementById('copyLobbyIdBtn');
+            if (copyBtn) copyBtn.onclick = () => { navigator.clipboard.writeText(id).catch(()=>{}); infoMsgSpan.innerText = "ID скопирован!"; setTimeout(()=>infoMsgSpan.innerText="",1500); };
             startScreenDiv.style.display = 'none';
-            updateGameStatusText();
-            sendMyPosition();
-        }
-
-        function exitToLobby() {
-            if (dataConnection) dataConnection.close();
-            if (peer) peer.destroy();
-            peer = null;
-            dataConnection = null;
-            gameStarted = false;
-            gameActive = false;
-            resetBtn.style.display = 'none';
-            lobbyScreenDiv.style.display = 'none';
-            startScreenDiv.style.display = 'flex';
-            infoMsgSpan.innerText = '';
+            lobbyScreenDiv.style.display = 'flex';
+            updateLobbyUI();
             lobbyErrorMsg.style.display = 'none';
             isConnecting = false;
-        }
-
-        function setupDataConnection(conn, isInitiator = false) {
-            dataConnection = conn;
-            dataConnection.on('open', () => {
-                updateLobbyUI();
-            });
-            dataConnection.on('data', (data) => {
-                if (data.type === 'start' && !isHost) {
-                    launchGame();
-                } else if (data.type === 'pos' && gameStarted) {
-                    opponent.x = data.x;
-                    opponent.y = data.y;
-                    clampPositions();
-                } else if (data.type === 'shoot' && gameStarted) {
-                    shoot(data.angle, data.x, data.y, true);
-                } else if (data.type === 'hit' && gameStarted) {
-                    if (gameActive) {
-                        gameActive = false;
-                        winner = isHost ? 'enemy' : 'me';
-                        bullets = [];
-                        showGameOver(isHost ? "ПОРАЖЕНИЕ!" : "ПОБЕДА!");
-                        updateGameStatusText();
-                    }
-                } else if (data.type === 'reset' && gameStarted) {
-                    resetGameLocally();
-                }
-            });
-            dataConnection.on('close', () => {
-                if (gameStarted) {
-                    showGameOver("Соединение потеряно");
-                    gameStarted = false;
-                } else {
-                    exitToLobby();
-                }
-            });
-        }
-
-        // Создание комнаты с попыткой подключения к разным серверам
-        function createLobbyWithFallback() {
-            if (isConnecting) return;
-            isConnecting = true;
-            currentServerIndex = 0;
+            peer.on('connection', (conn) => { setupDataConnection(conn, true); updateLobbyUI(); });
+        });
+        peer.on('error', (err) => {
+            console.warn(`Server ${server.host} error:`, err);
+            currentServerIndex++;
+            if (peer) peer.destroy();
             tryCreatePeer();
+        });
+    }
+    function joinLobbyWithFallback(hostId) {
+        if (!hostId) { infoMsgSpan.innerText = "Введите ID комнаты!"; return; }
+        if (isConnecting) return;
+        isConnecting = true;
+        currentServerIndex = 0;
+        tryJoinPeer(hostId);
+    }
+    function tryJoinPeer(hostId) {
+        if (currentServerIndex >= servers.length) {
+            infoMsgSpan.innerText = "Не удалось подключиться к серверу.";
+            isConnecting = false;
+            return;
         }
-
-        function tryCreatePeer() {
-            if (currentServerIndex >= servers.length) {
-                infoMsgSpan.innerText = "Не удалось подключиться ни к одному серверу. Проверьте интернет.";
-                lobbyErrorMsg.innerText = "Ошибка: все серверы недоступны. Попробуйте позже.";
-                lobbyErrorMsg.style.display = 'block';
-                isConnecting = false;
-                return;
-            }
-            const server = servers[currentServerIndex];
-            infoMsgSpan.innerText = `Подключение к серверу ${server.host}...`;
-            peer = new Peer(undefined, server);
-            peer.on('open', (id) => {
-                myPeerId = id;
-                isHost = true;
-                lobbyIdDisplay.innerHTML = `🏷️ ID комнаты: <strong>${id}</strong> <button class="copy-btn" id="copyLobbyIdBtn">📋 Копировать</button>`;
-                const copyBtn = document.getElementById('copyLobbyIdBtn');
-                if (copyBtn) {
-                    copyBtn.onclick = () => {
-                        navigator.clipboard.writeText(id);
-                        infoMsgSpan.innerText = "ID скопирован! Отправьте другу.";
-                        setTimeout(() => infoMsgSpan.innerText = "", 2000);
-                    };
-                }
-                startScreenDiv.style.display = 'none';
-                lobbyScreenDiv.style.display = 'flex';
-                updateLobbyUI();
-                lobbyErrorMsg.style.display = 'none';
-                isConnecting = false;
-                peer.on('connection', (conn) => {
-                    setupDataConnection(conn, true);
-                    updateLobbyUI();
-                });
-            });
-            peer.on('error', (err) => {
-                console.warn(`Server ${server.host} error:`, err);
-                currentServerIndex++;
-                peer.destroy();
-                tryCreatePeer();
-            });
-        }
-
-        function joinLobbyWithFallback(hostId) {
-            if (!hostId) {
-                infoMsgSpan.innerText = "Введите ID комнаты!";
-                return;
-            }
-            if (isConnecting) return;
-            isConnecting = true;
-            currentServerIndex = 0;
+        const server = servers[currentServerIndex];
+        infoMsgSpan.innerText = `Подключение к серверу ${server.host}...`;
+        peer = new Peer(undefined, server);
+        peer.on('open', () => {
+            const conn = peer.connect(hostId);
+            setupDataConnection(conn, false);
+            startScreenDiv.style.display = 'none';
+            lobbyScreenDiv.style.display = 'flex';
+            updateLobbyUI();
+            lobbyErrorMsg.style.display = 'none';
+            isConnecting = false;
+        });
+        peer.on('error', (err) => {
+            console.warn(`Join server ${server.host} error:`, err);
+            currentServerIndex++;
+            if (peer) peer.destroy();
             tryJoinPeer(hostId);
-        }
-
-        function tryJoinPeer(hostId) {
-            if (currentServerIndex >= servers.length) {
-                infoMsgSpan.innerText = "Не удалось подключиться к серверу.";
-                isConnecting = false;
-                return;
-            }
-            const server = servers[currentServerIndex];
-            infoMsgSpan.innerText = `Подключение к серверу ${server.host}...`;
-            peer = new Peer(undefined, server);
-            peer.on('open', () => {
-                const conn = peer.connect(hostId);
-                setupDataConnection(conn, false);
-                startScreenDiv.style.display = 'none';
-                lobbyScreenDiv.style.display = 'flex';
-                updateLobbyUI();
-                lobbyErrorMsg.style.display = 'none';
-                isConnecting = false;
-            });
-            peer.on('error', (err) => {
-                console.warn(`Join server ${server.host} error:`, err);
-                currentServerIndex++;
-                peer.destroy();
-                tryJoinPeer(hostId);
-            });
-        }
-
-        // --- Обработчики кнопок ---
-        createBtn.addEventListener('click', createLobbyWithFallback);
-        joinBtn.addEventListener('click', () => {
-            const id = peerInput.value.trim();
-            if (id) joinLobbyWithFallback(id);
-            else infoMsgSpan.innerText = "Введите ID!";
         });
-        startGameBtn.addEventListener('click', startTheGame);
-        leaveLobbyBtn.addEventListener('click', exitToLobby);
-        resetBtn.addEventListener('click', () => {
-            if (gameStarted && dataConnection && dataConnection.open) {
-                resetGameLocally();
-                dataConnection.send({ type: 'reset' });
-            } else if (gameStarted) {
-                resetGameLocally();
-            }
-        });
+    }
 
-        // --- События canvas ---
-        canvas.addEventListener('mousemove', onMove);
-        canvas.addEventListener('mousedown', onFire);
-        canvas.addEventListener('touchmove', onMove, { passive: false });
-        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); onFire(e); });
-        canvas.addEventListener('contextmenu', (e) => e.preventDefault());
-        window.addEventListener('resize', resizeCanvasAndReset);
+    // --- Инициализация кнопок ---
+    createBtn.addEventListener('click', createLobbyWithFallback);
+    joinBtn.addEventListener('click', () => { const id = peerInput.value.trim(); if(id) joinLobbyWithFallback(id); else infoMsgSpan.innerText = "Введите ID!"; });
+    startGameBtn.addEventListener('click', startTheGame);
+    leaveLobbyBtn.addEventListener('click', exitToLobby);
+    resetBtn.addEventListener('click', () => { if(gameStarted && dataConnection && dataConnection.open) { resetGameLocally(); dataConnection.send({ type: 'reset' }); } else if(gameStarted) resetGameLocally(); });
 
-        resizeCanvasAndReset();
-        animate();
-    })();
+    canvas.addEventListener('mousemove', onMove);
+    canvas.addEventListener('mousedown', onFire);
+    canvas.addEventListener('touchmove', onMove, { passive: false });
+    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); onFire(e); });
+    canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+    window.addEventListener('resize', resizeCanvasAndReset);
+
+    resizeCanvasAndReset();
+    animate();
+})();
 </script>
 </body>
 </html>
