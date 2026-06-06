@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Kill the Alien — PvP с комнатой</title>
+    <title>Kill the Alien — PvP с комнатой (стабильный)</title>
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <style>
         * { user-select: none; -webkit-tap-highlight-color: transparent; touch-action: none; }
@@ -11,7 +11,7 @@
         .game-wrapper { position: relative; width: 100%; height: 100%; }
         canvas { display: block; width: 100%; height: 100%; background: #0b1219; cursor: crosshair; touch-action: none; }
         .ui-panel { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); padding: 6px 12px; border-radius: 20px; color: #ffd966; z-index: 20; pointer-events: none; }
-        .reset-btn { position: absolute; bottom: 16px; right: 16px; background: #ff8844; border: none; padding: 6px 15px; border-radius: 30px; font-weight: bold; cursor: pointer; z-index: 100; }
+        .reset-btn { position: absolute; bottom: 16px; right: 16px; background: #ff8844; border: none; padding: 6px 15px; border-radius: 30px; font-weight: bold; cursor: pointer; z-index: 100; display: none; }
         .start-screen, .lobby-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: flex; justify-content: center; align-items: center; z-index: 200; backdrop-filter: blur(8px); flex-direction: column; }
         .lobby-screen { z-index: 210; }
         .start-box, .lobby-box { background: #1a1e2a; border-radius: 30px; padding: 25px; text-align: center; border: 1px solid #ffd966; max-width: 90%; min-width: 280px; }
@@ -25,6 +25,7 @@
         .player-list { background: #0f121c; border-radius: 20px; padding: 10px; margin: 15px 0; text-align: left; }
         .player-item { color: #aaffaa; margin: 5px 0; font-size: 14px; }
         .waiting-text { color: #ffaa88; margin-top: 10px; }
+        .error-text { color: #ff6666; margin-top: 10px; font-size: 14px; }
     </style>
 </head>
 <body>
@@ -33,9 +34,9 @@
     <div class="ui-panel">
         <span id="gameStatusText">⚡ НЕ В ИГРЕ</span>
     </div>
-    <button id="resetBtn" class="reset-btn" style="display: none;">♻️ РЕСТАРТ</button>
+    <button id="resetBtn" class="reset-btn">♻️ РЕСТАРТ</button>
 
-    <!-- Главный экран (выбор: создать или подключиться) -->
+    <!-- Главный экран -->
     <div id="startScreen" class="start-screen">
         <div class="start-box">
             <h2>👽 KILL THE ALIEN 👾</h2>
@@ -48,7 +49,7 @@
         </div>
     </div>
 
-    <!-- Экран комнаты (лобби) -->
+    <!-- Экран комнаты -->
     <div id="lobbyScreen" class="lobby-screen" style="display: none;">
         <div class="lobby-box">
             <h2>🚀 КОМНАТА</h2>
@@ -60,13 +61,14 @@
             <div id="lobbyWaitingMessage" class="waiting-text">Ожидание подключения второго игрока...</div>
             <button id="startGameBtn" style="display: none; background: #44aa44;">▶ НАЧАТЬ ИГРУ</button>
             <button id="leaveLobbyBtn" style="background: #885544;">🚪 Выйти</button>
+            <div id="lobbyErrorMsg" class="error-text" style="display: none;"></div>
         </div>
     </div>
 </div>
 
 <script>
     (function() {
-        // --- DOM элементы ---
+        // --- DOM ---
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const gameStatusSpan = document.getElementById('gameStatusText');
@@ -82,26 +84,35 @@
         const lobbyWaitingMsg = document.getElementById('lobbyWaitingMessage');
         const startGameBtn = document.getElementById('startGameBtn');
         const leaveLobbyBtn = document.getElementById('leaveLobbyBtn');
+        const lobbyErrorMsg = document.getElementById('lobbyErrorMsg');
 
         // --- Игровые параметры ---
         let cw, ch;
         let player = { x: 0, y: 0, r: 20 };
         let opponent = { x: 0, y: 0, r: 20 };
         let bullets = [];
-        let gameActive = false;       // игра активна только когда запущена
+        let gameActive = false;
         let winner = null;
         let gameOverTimer = null;
-        let bulletSpeed = 8;
-        let bulletRadius = 6;
+        let bulletSpeed = 8, bulletRadius = 6;
 
-        // --- P2P и сеть ---
+        // --- Сеть ---
         let peer = null;
         let dataConnection = null;
         let myPeerId = null;
-        let isHost = false;           // создатель комнаты
-        let gameStarted = false;      // флаг, что игра запущена (боевая фаза)
+        let isHost = false;
+        let gameStarted = false;    // true после нажатия "Начать"
 
-        // --- Функции игровой механики (адаптированы под gameStarted) ---
+        // --- Настройки серверов (fallback) ---
+        const servers = [
+            { host: '0.peerjs.com', port: 443, secure: true, path: '/' },
+            { host: 'peerjs-server.cyclic.app', port: 443, secure: true, path: '/' },
+            { host: 'my-own-server.herokuapp.com', port: 443, secure: true, path: '/' } // запасной, может не работать
+        ];
+        let currentServerIndex = 0;
+        let isConnecting = false;
+
+        // --- Вспомогательные функции игры ---
         function resizeCanvasAndReset() {
             cw = canvas.width = window.innerWidth;
             ch = canvas.height = window.innerHeight;
@@ -138,7 +149,6 @@
             else gameStatusSpan.innerText = "⚔️ В БОЮ";
         }
 
-        // --- Логика боя ---
         function shoot(angle, fromX, fromY, isEnemy = false) {
             if (!gameStarted || !gameActive) return;
             bullets.push({
@@ -231,7 +241,6 @@
             }, 50);
         }
 
-        // --- Сетевые отправки (только когда игра запущена) ---
         function sendMyPosition() {
             if (dataConnection && dataConnection.open && gameStarted && gameActive) {
                 dataConnection.send({ type: 'pos', x: player.x, y: player.y });
@@ -244,7 +253,7 @@
             }
         }
 
-        // --- Управление движением и стрельбой (активно только в бою) ---
+        // --- Управление ---
         function onMove(e) {
             if (!gameStarted || !gameActive) return;
             const rect = canvas.getBoundingClientRect();
@@ -294,7 +303,7 @@
             }
         }
 
-        // --- Отрисовка (та же, что и раньше) ---
+        // --- Отрисовка ---
         function drawBackground() {
             let grad = ctx.createLinearGradient(0, 0, 0, ch);
             grad.addColorStop(0, "#0a1018");
@@ -361,10 +370,9 @@
             requestAnimationFrame(animate);
         }
 
-        // --- Функции лобби и запуска игры ---
+        // --- Лобби и подключение с fallback ---
         function updateLobbyUI() {
-            if (!lobbyScreenDiv.style.display === 'none') return;
-            // Обновляем список игроков: создатель и подключённый
+            if (lobbyScreenDiv.style.display === 'none') return;
             if (isHost) {
                 playerListContainer.innerHTML = '<div class="player-item">👑 Хост (вы)</div>';
                 if (dataConnection && dataConnection.open) {
@@ -377,7 +385,6 @@
                     startGameBtn.style.display = 'none';
                 }
             } else {
-                // Клиент (не хост)
                 playerListContainer.innerHTML = '<div class="player-item">👑 Хост (создатель)</div>';
                 playerListContainer.innerHTML += '<div class="player-item">👤 Вы (подключены)</div>';
                 lobbyWaitingMsg.innerText = 'Ожидаем, когда хост начнёт игру...';
@@ -387,11 +394,9 @@
         }
 
         function startTheGame() {
-            if (!isHost) return; // только хост может начать
+            if (!isHost) return;
             if (!dataConnection || !dataConnection.open) return;
-            // Отправляем команду старта всем
             dataConnection.send({ type: 'start' });
-            // Запускаем игру локально
             launchGame();
         }
 
@@ -405,12 +410,10 @@
             lobbyScreenDiv.style.display = 'none';
             startScreenDiv.style.display = 'none';
             updateGameStatusText();
-            // Отправляем свою позицию после старта
             sendMyPosition();
         }
 
         function exitToLobby() {
-            // Закрываем соединение, сбрасываем состояние
             if (dataConnection) dataConnection.close();
             if (peer) peer.destroy();
             peer = null;
@@ -421,22 +424,17 @@
             lobbyScreenDiv.style.display = 'none';
             startScreenDiv.style.display = 'flex';
             infoMsgSpan.innerText = '';
+            lobbyErrorMsg.style.display = 'none';
+            isConnecting = false;
         }
 
-        // --- Обработка входящих соединений и данных ---
         function setupDataConnection(conn, isInitiator = false) {
             dataConnection = conn;
             dataConnection.on('open', () => {
-                if (isHost) {
-                    updateLobbyUI();
-                } else {
-                    // клиент: после открытия соединения ждём команды старта
-                    updateLobbyUI();
-                }
+                updateLobbyUI();
             });
             dataConnection.on('data', (data) => {
-                if (data.type === 'start') {
-                    // хост дал команду старта
+                if (data.type === 'start' && !isHost) {
                     launchGame();
                 } else if (data.type === 'pos' && gameStarted) {
                     opponent.x = data.x;
@@ -447,7 +445,7 @@
                 } else if (data.type === 'hit' && gameStarted) {
                     if (gameActive) {
                         gameActive = false;
-                        winner = (isHost ? 'enemy' : 'me');
+                        winner = isHost ? 'enemy' : 'me';
                         bullets = [];
                         showGameOver(isHost ? "ПОРАЖЕНИЕ!" : "ПОБЕДА!");
                         updateGameStatusText();
@@ -466,15 +464,25 @@
             });
         }
 
-        // --- Роль: СОЗДАТЕЛЬ (Host) ---
-        function createLobby() {
-            peer = new Peer(undefined, {
-                host: 'game.peerjs.com',
-                port: 443,
-                secure: true,
-                path: '/',
-                config: { 'iceServers': [{ 'urls': 'stun:stun.l.google.com:19302' }] }
-            });
+        // Создание комнаты с попыткой подключения к разным серверам
+        function createLobbyWithFallback() {
+            if (isConnecting) return;
+            isConnecting = true;
+            currentServerIndex = 0;
+            tryCreatePeer();
+        }
+
+        function tryCreatePeer() {
+            if (currentServerIndex >= servers.length) {
+                infoMsgSpan.innerText = "Не удалось подключиться ни к одному серверу. Проверьте интернет.";
+                lobbyErrorMsg.innerText = "Ошибка: все серверы недоступны. Попробуйте позже.";
+                lobbyErrorMsg.style.display = 'block';
+                isConnecting = false;
+                return;
+            }
+            const server = servers[currentServerIndex];
+            infoMsgSpan.innerText = `Подключение к серверу ${server.host}...`;
+            peer = new Peer(undefined, server);
             peer.on('open', (id) => {
                 myPeerId = id;
                 isHost = true;
@@ -490,55 +498,67 @@
                 startScreenDiv.style.display = 'none';
                 lobbyScreenDiv.style.display = 'flex';
                 updateLobbyUI();
-                // Ожидаем подключения клиента
+                lobbyErrorMsg.style.display = 'none';
+                isConnecting = false;
                 peer.on('connection', (conn) => {
                     setupDataConnection(conn, true);
                     updateLobbyUI();
                 });
             });
             peer.on('error', (err) => {
-                infoMsgSpan.innerText = `Ошибка: ${err.type}`;
-                console.error(err);
+                console.warn(`Server ${server.host} error:`, err);
+                currentServerIndex++;
+                peer.destroy();
+                tryCreatePeer();
             });
         }
 
-        // --- Роль: КЛИЕНТ (подключается к хосту) ---
-        function joinLobby(hostId) {
+        function joinLobbyWithFallback(hostId) {
             if (!hostId) {
                 infoMsgSpan.innerText = "Введите ID комнаты!";
                 return;
             }
-            peer = new Peer(undefined, {
-                host: 'game.peerjs.com',
-                port: 443,
-                secure: true,
-                path: '/',
-                config: { 'iceServers': [{ 'urls': 'stun:stun.l.google.com:19302' }] }
-            });
+            if (isConnecting) return;
+            isConnecting = true;
+            currentServerIndex = 0;
+            tryJoinPeer(hostId);
+        }
+
+        function tryJoinPeer(hostId) {
+            if (currentServerIndex >= servers.length) {
+                infoMsgSpan.innerText = "Не удалось подключиться к серверу.";
+                isConnecting = false;
+                return;
+            }
+            const server = servers[currentServerIndex];
+            infoMsgSpan.innerText = `Подключение к серверу ${server.host}...`;
+            peer = new Peer(undefined, server);
             peer.on('open', () => {
                 const conn = peer.connect(hostId);
                 setupDataConnection(conn, false);
                 startScreenDiv.style.display = 'none';
                 lobbyScreenDiv.style.display = 'flex';
                 updateLobbyUI();
+                lobbyErrorMsg.style.display = 'none';
+                isConnecting = false;
             });
             peer.on('error', (err) => {
-                infoMsgSpan.innerText = `Ошибка: ${err.type}`;
-                console.error(err);
+                console.warn(`Join server ${server.host} error:`, err);
+                currentServerIndex++;
+                peer.destroy();
+                tryJoinPeer(hostId);
             });
         }
 
-        // --- Обработчики кнопок UI ---
-        createBtn.addEventListener('click', createLobby);
+        // --- Обработчики кнопок ---
+        createBtn.addEventListener('click', createLobbyWithFallback);
         joinBtn.addEventListener('click', () => {
             const id = peerInput.value.trim();
-            if (id) joinLobby(id);
+            if (id) joinLobbyWithFallback(id);
             else infoMsgSpan.innerText = "Введите ID!";
         });
         startGameBtn.addEventListener('click', startTheGame);
-        leaveLobbyBtn.addEventListener('click', () => {
-            exitToLobby();
-        });
+        leaveLobbyBtn.addEventListener('click', exitToLobby);
         resetBtn.addEventListener('click', () => {
             if (gameStarted && dataConnection && dataConnection.open) {
                 resetGameLocally();
@@ -548,15 +568,13 @@
             }
         });
 
-        // --- События мыши / касаний (активны всегда, но стрельба/движение проверяют gameStarted внутри)---
+        // --- События canvas ---
         canvas.addEventListener('mousemove', onMove);
         canvas.addEventListener('mousedown', onFire);
         canvas.addEventListener('touchmove', onMove, { passive: false });
         canvas.addEventListener('touchstart', (e) => { e.preventDefault(); onFire(e); });
         canvas.addEventListener('contextmenu', (e) => e.preventDefault());
-        window.addEventListener('resize', () => {
-            resizeCanvasAndReset();
-        });
+        window.addEventListener('resize', resizeCanvasAndReset);
 
         resizeCanvasAndReset();
         animate();
